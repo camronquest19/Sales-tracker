@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Sales Tracker Pro</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+    }
+
+    @keyframes celebrate {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: none;
+      background: linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      min-height: 100vh;
+    }
+
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .glass-dark {
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+    .slide-in { animation: slideIn 0.3s ease-out; }
+    .slide-up { animation: slideUp 0.4s ease-out; }
+
+    .money-font {
+      font-family: 'Space Mono', monospace;
+    }
+
+    .nav-item {
+      transition: all 0.2s ease;
+    }
+
+    .nav-item.active {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      transform: translateY(2px);
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .debt-progress {
+      background: linear-gradient(90deg, #10b981, #34d399);
+      transition: width 0.5s ease;
+    }
+
+    .category-pill {
+      transition: all 0.2s ease;
+    }
+
+    .category-pill:hover {
+      transform: scale(1.02);
+    }
+
+    .debt-widget {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .debt-widget-progress {
+      background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7);
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.3);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.5);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+    // ==================== ICONS ====================
+    const Icons = {
+      Plus: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      ),
+      Minus: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      ),
+      Calendar: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      ),
+      DollarSign: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      ),
+      CreditCard: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+        </svg>
+      ),
+      Car: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2" />
+          <circle cx="6.5" cy="16.5" r="2.5" /><circle cx="16.5" cy="16.5" r="2.5" />
+        </svg>
+      ),
+      Clock: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+        </svg>
+      ),
+      ChevronLeft: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      ),
+      ChevronRight: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      ),
+      X: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      ),
+      Trash: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+      ),
+      Save: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" /><polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
+        </svg>
+      ),
+      Download: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      ),
+      TrendingUp: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
+        </svg>
+      ),
+      Target: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+        </svg>
+      ),
+      Zap: () => (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      ),
+      Award: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+        </svg>
+      ),
+    };
+
+    // ==================== UTILITY FUNCTIONS ====================
+    const formatCurrency = (value) => {
+      const formatted = Math.abs(value).toFixed(2);
+      return value < 0 ? `-$${formatted}` : `$${formatted}`;
+    };
+
+    const formatShortCurrency = (value) => {
+      const abs = Math.abs(value);
+      if (abs >= 1000) {
+        return (value < 0 ? '-' : '') + '$' + (abs / 1000).toFixed(1) + 'k';
+      }
+      return value < 0 ? `-$${abs.toFixed(0)}` : `$${abs.toFixed(0)}`;
+    };
+
+    // ==================== TOAST COMPONENT ====================
+    const Toast = ({ toast }) => {
+      const bgColors = {
+        success: 'bg-gradient-to-r from-emerald-500 to-green-600',
+        warning: 'bg-gradient-to-r from-amber-500 to-orange-600',
+        error: 'bg-gradient-to-r from-red-500 to-rose-600',
+        info: 'bg-gradient-to-r from-blue-500 to-indigo-600'
+      };
+
+      const icons = { success: '✓', warning: '⚠', error: '✕', info: 'ℹ' };
+
+      return (
+        <div className={`fixed top-20 left-1/2 transform -translate-x-1/2 ${bgColors[toast.type]} text-white px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 z-50 flex items-center gap-3 ${toast.show ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}>
+          <span className="text-lg font-bold">{icons[toast.type]}</span>
+          <span className="font-medium text-sm">{toast.message}</span>
+        </div>
+      );
+    };
+
+    // ==================== TOP NAV COMPONENT ====================
+    const TopNav = ({ activeTab, setActiveTab }) => {
+      const tabs = [
+        { id: 'sales', icon: Icons.DollarSign, label: 'Sales' },
+        { id: 'debt', icon: Icons.CreditCard, label: 'Debt' },
+        { id: 'mileage', icon: Icons.Car, label: 'Miles' },
+        { id: 'timeline', icon: Icons.Clock, label: 'History' },
+        { id: 'calendar', icon: Icons.Calendar, label: 'Cal' },
+      ];
+
+      return (
+        <div className="glass-dark rounded-2xl px-2 py-2 mb-4 shadow-xl">
+          <div className="flex justify-around">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`nav-item flex flex-col items-center px-3 py-2 rounded-xl text-xs font-medium ${
+                  activeTab === tab.id 
+                    ? 'active' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                }`}
+              >
+                <tab.icon />
+                <span className="mt-1">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // ==================== DEBT STATS WIDGET ====================
+    const DebtStatsWidget = ({ remainingDebt, remainingPalletDebt, monthlyPayments, totalDebt, totalPalletDebt }) => {
+      const paidThisMonth = monthlyPayments;
+      const combinedRemaining = remainingDebt + remainingPalletDebt;
+      const combinedTotal = totalDebt + totalPalletDebt;
+      const progressPercent = combinedTotal > 0 ? ((combinedTotal - combinedRemaining) / combinedTotal) * 100 : 0;
+      
+      // Calculate estimated days to debt freedom
+      let estimatedDays = null;
+      let estimatedDate = null;
+      if (paidThisMonth > 0 && combinedRemaining > 0) {
+        const dailyRate = paidThisMonth / 30;
+        estimatedDays = Math.ceil(combinedRemaining / dailyRate);
+        estimatedDate = new Date();
+        estimatedDate.setDate(estimatedDate.getDate() + estimatedDays);
+      }
+
+      if (combinedTotal === 0) return null;
+
+      const isDebtFree = combinedRemaining <= 0;
+
+      return (
+        <div className={`debt-widget rounded-xl p-4 mb-4 ${isDebtFree ? 'bg-gradient-to-r from-emerald-600 to-green-600 border-emerald-400' : ''}`}>
+          {isDebtFree ? (
+            <div className="text-center text-white">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Icons.Award />
+                <span className="font-bold text-lg">🎉 DEBT FREE! 🎉</span>
+                <Icons.Award />
+              </div>
+              <p className="text-emerald-100 text-sm">Congratulations! You've paid off all your debt!</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <Icons.Target />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 text-xs">Total Remaining</p>
+                    <p className="text-white font-bold money-font">{formatCurrency(combinedRemaining)}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 text-xs">This Month</p>
+                  <p className="text-emerald-400 font-bold money-font">-{formatCurrency(paidThisMonth)}</p>
+                </div>
+              </div>
+
+              {/* Breakdown by type */}
+              <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
+                {remainingDebt > 0 && (
+                  <div className="bg-slate-800/50 rounded-lg p-2">
+                    <p className="text-slate-400">Regular Debt</p>
+                    <p className="text-rose-400 font-bold money-font">{formatCurrency(remainingDebt)}</p>
+                  </div>
+                )}
+                {remainingPalletDebt > 0 && (
+                  <div className="bg-slate-800/50 rounded-lg p-2">
+                    <p className="text-slate-400">Pallet Debt</p>
+                    <p className="text-orange-400 font-bold money-font">{formatCurrency(remainingPalletDebt)}</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-400">Progress</span>
+                  <span className="text-indigo-400 font-medium">{progressPercent.toFixed(1)}% paid</span>
+                </div>
+                <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+                  <div className="debt-widget-progress h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
+                </div>
+              </div>
+
+              {estimatedDays && (
+                <div className="flex items-center gap-2 text-sm bg-slate-800/50 rounded-lg p-2">
+                  <Icons.Zap />
+                  <span className="text-slate-300">
+                    At this pace, you'll be <span className="text-emerald-400 font-semibold">debt free</span> in{' '}
+                    <span className="text-white font-bold">{estimatedDays}</span> days!
+                    <span className="text-slate-400 text-xs ml-1">
+                      ({estimatedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+                    </span>
+                  </span>
+                </div>
+              )}
+              
+              {!estimatedDays && paidThisMonth === 0 && (
+                <div className="flex items-center gap-2 text-sm bg-slate-800/50 rounded-lg p-2">
+                  <Icons.Zap />
+                  <span className="text-slate-400">
+                    Make debt payments to see your freedom date!
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      );
+    };
+
+    // ==================== MAIN APP COMPONENT ====================
+    function SalesTracker() {
+      // ===== STATE =====
+      const DEFAULT_CATEGORIES = ['sale', 'debt', 'car', 'insurance', 'wage'];
+      
+      const [categories, setCategories] = useState(() => {
+        const saved = localStorage.getItem('salesCategories');
+        return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
+      });
+
+      const [entries, setEntries] = useState(() => {
+        const saved = localStorage.getItem('salesEntries');
+        if (saved) return JSON.parse(saved);
+        const initial = {};
+        DEFAULT_CATEGORIES.forEach(cat => initial[cat] = 0);
+        return initial;
+      });
+
+      const [timeline, setTimeline] = useState(() => {
+        const saved = localStorage.getItem('salesTimeline');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      // Debt Tracker State
+      const [debts, setDebts] = useState(() => {
+        const saved = localStorage.getItem('debts');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [debtPayments, setDebtPayments] = useState(() => {
+        const saved = localStorage.getItem('debtPayments');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      // Pallet Debt Tracker State
+      const [palletDebts, setPalletDebts] = useState(() => {
+        const saved = localStorage.getItem('palletDebts');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [palletDebtPayments, setPalletDebtPayments] = useState(() => {
+        const saved = localStorage.getItem('palletDebtPayments');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      // Mileage Tracker State
+      const [mileageTrips, setMileageTrips] = useState(() => {
+        const saved = localStorage.getItem('mileageTrips');
+        return saved ? JSON.parse(saved) : [];
+      });
+
+      const [mileageRate, setMileageRate] = useState(() => {
+        const saved = localStorage.getItem('mileageRate');
+        return saved ? parseFloat(saved) : 0.67;
+      });
+
+      // UI State
+      const [activeTab, setActiveTab] = useState('sales');
+      const [selectedEntry, setSelectedEntry] = useState(null);
+      const [currentMonth, setCurrentMonth] = useState(new Date());
+      const [editingField, setEditingField] = useState(null);
+      const [editValue, setEditValue] = useState('');
+      const [newCategory, setNewCategory] = useState('');
+      const [showAddCategory, setShowAddCategory] = useState(false);
+      const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+      const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+      const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+      const [showDebtSelector, setShowDebtSelector] = useState(false);
+      const [pendingDebtPayment, setPendingDebtPayment] = useState(0);
+
+      const inputRef = useRef(null);
+
+      // ===== EFFECTS =====
+      useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+      }, []);
+
+      useEffect(() => { localStorage.setItem('salesTimeline', JSON.stringify(timeline)); }, [timeline]);
+      useEffect(() => { localStorage.setItem('salesEntries', JSON.stringify(entries)); }, [entries]);
+      useEffect(() => { localStorage.setItem('salesCategories', JSON.stringify(categories)); }, [categories]);
+      useEffect(() => { localStorage.setItem('debts', JSON.stringify(debts)); }, [debts]);
+      useEffect(() => { localStorage.setItem('debtPayments', JSON.stringify(debtPayments)); }, [debtPayments]);
+      useEffect(() => { localStorage.setItem('palletDebts', JSON.stringify(palletDebts)); }, [palletDebts]);
+      useEffect(() => { localStorage.setItem('palletDebtPayments', JSON.stringify(palletDebtPayments)); }, [palletDebtPayments]);
+      useEffect(() => { localStorage.setItem('mileageTrips', JSON.stringify(mileageTrips)); }, [mileageTrips]);
+      useEffect(() => { localStorage.setItem('mileageRate', mileageRate.toString()); }, [mileageRate]);
+
+      useEffect(() => {
+        if (editingField && inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, [editingField]);
+
+      // ===== HELPERS =====
+      const showToast = useCallback((message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+      }, []);
+
+      const calculateTotal = useCallback(() => {
+        return Object.values(entries).reduce((sum, val) => sum + val, 0);
+      }, [entries]);
+
+      const calculateTimelineTotal = useCallback(() => {
+        return timeline.reduce((sum, entry) => sum + entry.total, 0);
+      }, [timeline]);
+
+      // ===== DEBT CALCULATIONS =====
+      const totalDebt = useMemo(() => debts.reduce((sum, d) => sum + d.originalAmount, 0), [debts]);
+      
+      const totalPaid = useMemo(() => debtPayments.reduce((sum, p) => sum + p.amount, 0), [debtPayments]);
+      
+      const remainingDebt = useMemo(() => Math.max(0, totalDebt - totalPaid), [totalDebt, totalPaid]);
+
+      // Pallet Debt Calculations
+      const totalPalletDebt = useMemo(() => palletDebts.reduce((sum, d) => sum + d.originalAmount, 0), [palletDebts]);
+      
+      const totalPalletPaid = useMemo(() => palletDebtPayments.reduce((sum, p) => sum + p.amount, 0), [palletDebtPayments]);
+      
+      const remainingPalletDebt = useMemo(() => Math.max(0, totalPalletDebt - totalPalletPaid), [totalPalletDebt, totalPalletPaid]);
+
+      // Combined totals for widget
+      const combinedTotalDebt = useMemo(() => totalDebt + totalPalletDebt, [totalDebt, totalPalletDebt]);
+      const combinedRemainingDebt = useMemo(() => remainingDebt + remainingPalletDebt, [remainingDebt, remainingPalletDebt]);
+
+      // Calculate payments made this month (both types)
+      const monthlyPayments = useMemo(() => {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const regularPayments = debtPayments
+          .filter(p => new Date(p.date) >= startOfMonth)
+          .reduce((sum, p) => sum + p.amount, 0);
+        const palletPayments = palletDebtPayments
+          .filter(p => new Date(p.date) >= startOfMonth)
+          .reduce((sum, p) => sum + p.amount, 0);
+        return regularPayments + palletPayments;
+      }, [debtPayments, palletDebtPayments]);
+
+      const getDebtRemaining = useCallback((debtId) => {
+        const debt = debts.find(d => d.id === debtId);
+        if (!debt) return 0;
+        const paid = debtPayments.filter(p => p.debtId === debtId).reduce((sum, p) => sum + p.amount, 0);
+        return Math.max(0, debt.originalAmount - paid);
+      }, [debts, debtPayments]);
+
+      const getPalletDebtRemaining = useCallback((debtId) => {
+        const debt = palletDebts.find(d => d.id === debtId);
+        if (!debt) return 0;
+        const paid = palletDebtPayments.filter(p => p.debtId === debtId).reduce((sum, p) => sum + p.amount, 0);
+        return Math.max(0, debt.originalAmount - paid);
+      }, [palletDebts, palletDebtPayments]);
+
+      // ===== SALES FUNCTIONS =====
+      const updateValue = useCallback((field, increment) => {
+        setEntries(prev => ({ ...prev, [field]: prev[field] + increment }));
+      }, []);
+
+      const setDirectValue = useCallback((field, value) => {
+        setEntries(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
+      }, []);
+
+      const applyDebtPayment = useCallback((debtId, amount) => {
+        if (amount <= 0) return;
+        
+        const remaining = getDebtRemaining(debtId);
+        const actualPayment = Math.min(amount, remaining);
+        
+        if (actualPayment > 0) {
+          setDebtPayments(prev => [...prev, {
+            id: Date.now(),
+            debtId,
+            amount: actualPayment,
+            note: 'From sales entry',
+            date: new Date().toISOString(),
+            fromSales: true
+          }]);
+        }
+        
+        return actualPayment;
+      }, [getDebtRemaining]);
+
+      const applyPalletDebtPayment = useCallback((debtId, amount) => {
+        if (amount <= 0) return;
+        
+        const remaining = getPalletDebtRemaining(debtId);
+        const actualPayment = Math.min(amount, remaining);
+        
+        if (actualPayment > 0) {
+          setPalletDebtPayments(prev => [...prev, {
+            id: Date.now(),
+            debtId,
+            amount: actualPayment,
+            note: 'From sales entry',
+            date: new Date().toISOString(),
+            fromSales: true
+          }]);
+        }
+        
+        return actualPayment;
+      }, [getPalletDebtRemaining]);
+
+      const saveToTimeline = useCallback(() => {
+        const total = calculateTotal();
+        if (total === 0 && Object.values(entries).every(v => v === 0)) {
+          showToast('Please add some values first', 'warning');
+          return;
+        }
+
+        // Check if there's a negative debt value (meaning payment toward debt)
+        const debtPaymentAmount = entries.debt < 0 ? Math.abs(entries.debt) : 0;
+
+        const newEntry = {
+          id: Date.now(),
+          date: new Date().toISOString(),
+          entries: { ...entries },
+          total,
+          description: '',
+          images: []
+        };
+
+        setTimeline(prev => [newEntry, ...prev]);
+        
+        // Reset entries
+        const resetEntries = {};
+        categories.forEach(cat => resetEntries[cat] = 0);
+        setEntries(resetEntries);
+
+        // If there was a debt payment, handle it
+        if (debtPaymentAmount > 0) {
+          // Find all debts with remaining balance (both types)
+          const regularDebtsWithBalance = debts.filter(d => getDebtRemaining(d.id) > 0);
+          const palletDebtsWithBalance = palletDebts.filter(d => getPalletDebtRemaining(d.id) > 0);
+          const totalDebtsWithBalance = regularDebtsWithBalance.length + palletDebtsWithBalance.length;
+          
+          if (totalDebtsWithBalance === 0) {
+            showToast('Entry saved! No debts with remaining balance', 'info');
+          } else if (totalDebtsWithBalance === 1) {
+            // Auto-apply to the only debt with balance
+            if (regularDebtsWithBalance.length === 1) {
+              applyDebtPayment(regularDebtsWithBalance[0].id, debtPaymentAmount);
+              showToast(`Entry saved! $${debtPaymentAmount.toFixed(2)} applied to ${regularDebtsWithBalance[0].name}`, 'success');
+            } else {
+              applyPalletDebtPayment(palletDebtsWithBalance[0].id, debtPaymentAmount);
+              showToast(`Entry saved! $${debtPaymentAmount.toFixed(2)} applied to ${palletDebtsWithBalance[0].name} (Pallet)`, 'success');
+            }
+          } else {
+            // Show selector for multiple debts
+            setPendingDebtPayment(debtPaymentAmount);
+            setShowDebtSelector(true);
+            showToast('Entry saved! Select which debt to apply payment to', 'info');
+          }
+        } else {
+          showToast('Entry saved!', 'success');
+        }
+      }, [entries, categories, calculateTotal, showToast, debts, palletDebts, getDebtRemaining, getPalletDebtRemaining, applyDebtPayment, applyPalletDebtPayment]);
+
+      const handleDebtSelection = useCallback((debtId, isPallet = false) => {
+        if (pendingDebtPayment > 0) {
+          if (isPallet) {
+            const debt = palletDebts.find(d => d.id === debtId);
+            applyPalletDebtPayment(debtId, pendingDebtPayment);
+            showToast(`$${pendingDebtPayment.toFixed(2)} applied to ${debt?.name} (Pallet)!`, 'success');
+          } else {
+            const debt = debts.find(d => d.id === debtId);
+            applyDebtPayment(debtId, pendingDebtPayment);
+            showToast(`$${pendingDebtPayment.toFixed(2)} applied to ${debt?.name}!`, 'success');
+          }
+        }
+        setPendingDebtPayment(0);
+        setShowDebtSelector(false);
+      }, [pendingDebtPayment, debts, palletDebts, applyDebtPayment, applyPalletDebtPayment, showToast]);
+
+      const addCategory = useCallback(() => {
+        const trimmed = newCategory.trim().toLowerCase();
+        if (!trimmed) { showToast('Enter a category name', 'warning'); return; }
+        if (categories.includes(trimmed)) { showToast('Category exists', 'warning'); return; }
+        setCategories(prev => [...prev, trimmed]);
+        setEntries(prev => ({ ...prev, [trimmed]: 0 }));
+        setNewCategory('');
+        setShowAddCategory(false);
+        showToast(`Added "${trimmed}"`, 'success');
+      }, [newCategory, categories, showToast]);
+
+      const removeCategory = useCallback((cat) => {
+        if (categories.length <= 1) { showToast('Need at least one category', 'warning'); return; }
+        if (window.confirm(`Remove "${cat}"?`)) {
+          setCategories(prev => prev.filter(c => c !== cat));
+          setEntries(prev => { const n = { ...prev }; delete n[cat]; return n; });
+          showToast(`Removed "${cat}"`, 'info');
+        }
+      }, [categories, showToast]);
+
+      const updateTimelineEntry = useCallback((id, updates) => {
+        setTimeline(prev => prev.map(entry => entry.id === id ? { ...entry, ...updates } : entry));
+        if (selectedEntry?.id === id) setSelectedEntry(prev => ({ ...prev, ...updates }));
+      }, [selectedEntry]);
+
+      const deleteTimelineEntry = useCallback((id) => {
+        if (window.confirm('Delete this entry?')) {
+          setTimeline(prev => prev.filter(entry => entry.id !== id));
+          setSelectedEntry(null);
+        }
+      }, []);
+
+      // ===== DEBT FUNCTIONS =====
+      const addDebt = useCallback((name, amount) => {
+        if (!name.trim() || amount <= 0) { showToast('Enter valid debt info', 'warning'); return; }
+        setDebts(prev => [...prev, {
+          id: Date.now(),
+          name: name.trim(),
+          originalAmount: amount,
+          createdAt: new Date().toISOString()
+        }]);
+        showToast('Debt added', 'success');
+      }, [showToast]);
+
+      const addPayment = useCallback((debtId, amount, note = '') => {
+        if (amount <= 0) { showToast('Enter a valid amount', 'warning'); return; }
+        const remaining = getDebtRemaining(debtId);
+        if (amount > remaining) { showToast(`Max payment is ${formatCurrency(remaining)}`, 'warning'); return; }
+        
+        setDebtPayments(prev => [...prev, {
+          id: Date.now(),
+          debtId,
+          amount,
+          note,
+          date: new Date().toISOString()
+        }]);
+        showToast('Payment recorded!', 'success');
+      }, [getDebtRemaining, showToast]);
+
+      const deleteDebt = useCallback((id) => {
+        if (window.confirm('Delete this debt and all its payments?')) {
+          setDebts(prev => prev.filter(d => d.id !== id));
+          setDebtPayments(prev => prev.filter(p => p.debtId !== id));
+          showToast('Debt deleted', 'info');
+        }
+      }, [showToast]);
+
+      // ===== PALLET DEBT FUNCTIONS =====
+      const addPalletDebt = useCallback((name, amount) => {
+        if (!name.trim() || amount <= 0) { showToast('Enter valid pallet debt info', 'warning'); return; }
+        setPalletDebts(prev => [...prev, {
+          id: Date.now(),
+          name: name.trim(),
+          originalAmount: amount,
+          createdAt: new Date().toISOString()
+        }]);
+        showToast('Pallet debt added', 'success');
+      }, [showToast]);
+
+      const addPalletPayment = useCallback((debtId, amount, note = '') => {
+        if (amount <= 0) { showToast('Enter a valid amount', 'warning'); return; }
+        const remaining = getPalletDebtRemaining(debtId);
+        if (amount > remaining) { showToast(`Max payment is ${formatCurrency(remaining)}`, 'warning'); return; }
+        
+        setPalletDebtPayments(prev => [...prev, {
+          id: Date.now(),
+          debtId,
+          amount,
+          note,
+          date: new Date().toISOString()
+        }]);
+        showToast('Pallet payment recorded!', 'success');
+      }, [getPalletDebtRemaining, showToast]);
+
+      const deletePalletDebt = useCallback((id) => {
+        if (window.confirm('Delete this pallet debt and all its payments?')) {
+          setPalletDebts(prev => prev.filter(d => d.id !== id));
+          setPalletDebtPayments(prev => prev.filter(p => p.debtId !== id));
+          showToast('Pallet debt deleted', 'info');
+        }
+      }, [showToast]);
+
+      // ===== MILEAGE FUNCTIONS =====
+      const totalMileage = useMemo(() => 
+        mileageTrips.reduce((sum, t) => sum + (t.endOdometer - t.startOdometer), 0)
+      , [mileageTrips]);
+
+      const totalReimbursement = useMemo(() => totalMileage * mileageRate, [totalMileage, mileageRate]);
+
+      const addMileageTrip = useCallback((trip) => {
+        const miles = trip.endOdometer - trip.startOdometer;
+        if (miles <= 0) { showToast('End must be greater than start', 'warning'); return; }
+        setMileageTrips(prev => [...prev, { ...trip, id: Date.now() }]);
+        showToast(`${miles} miles logged`, 'success');
+      }, [showToast]);
+
+      const deleteMileageTrip = useCallback((id) => {
+        setMileageTrips(prev => prev.filter(t => t.id !== id));
+        showToast('Trip deleted', 'info');
+      }, [showToast]);
+
+      // ===== CALENDAR HELPERS =====
+      const getDaysInMonth = useCallback((date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        return {
+          daysInMonth: new Date(year, month + 1, 0).getDate(),
+          startingDayOfWeek: new Date(year, month, 1).getDay(),
+          year,
+          month
+        };
+      }, []);
+
+      const getEntriesForDate = useCallback((date) => {
+        return timeline.filter(entry => new Date(entry.date).toDateString() === date.toDateString());
+      }, [timeline]);
+
+      // ===== EXPORT =====
+      const exportData = useCallback(() => {
+        const data = { 
+          timeline, 
+          categories, 
+          debts, 
+          debtPayments, 
+          palletDebts,
+          palletDebtPayments,
+          mileageTrips, 
+          mileageRate, 
+          exportDate: new Date().toISOString() 
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sales-tracker-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Data exported!', 'success');
+      }, [timeline, categories, debts, debtPayments, palletDebts, palletDebtPayments, mileageTrips, mileageRate, showToast]);
+
+      // ==================== DEBT SELECTOR MODAL ====================
+      const DebtSelectorModal = () => {
+        if (!showDebtSelector) return null;
+        
+        const regularDebtsWithBalance = debts.filter(d => getDebtRemaining(d.id) > 0);
+        const palletDebtsWithBalance = palletDebts.filter(d => getPalletDebtRemaining(d.id) > 0);
+        
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl slide-up max-h-[80vh] overflow-y-auto">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Apply Payment</h3>
+              <p className="text-slate-600 mb-4">
+                Select which debt to apply <span className="font-bold text-emerald-600">{formatCurrency(pendingDebtPayment)}</span> to:
+              </p>
+              
+              {regularDebtsWithBalance.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Regular Debts</p>
+                  <div className="space-y-2">
+                    {regularDebtsWithBalance.map(debt => (
+                      <button
+                        key={debt.id}
+                        onClick={() => handleDebtSelection(debt.id, false)}
+                        className="w-full p-4 bg-slate-50 hover:bg-indigo-50 rounded-xl border border-slate-200 hover:border-indigo-300 transition-all text-left"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-slate-800 capitalize">{debt.name}</span>
+                          <span className="text-rose-600 font-bold money-font">{formatCurrency(getDebtRemaining(debt.id))}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {palletDebtsWithBalance.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">📦 Pallet Debts</p>
+                  <div className="space-y-2">
+                    {palletDebtsWithBalance.map(debt => (
+                      <button
+                        key={debt.id}
+                        onClick={() => handleDebtSelection(debt.id, true)}
+                        className="w-full p-4 bg-orange-50 hover:bg-orange-100 rounded-xl border border-orange-200 hover:border-orange-300 transition-all text-left"
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className="font-semibold text-slate-800 capitalize">{debt.name}</span>
+                          <span className="text-orange-600 font-bold money-font">{formatCurrency(getPalletDebtRemaining(debt.id))}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => { setShowDebtSelector(false); setPendingDebtPayment(0); }}
+                className="w-full mt-2 p-3 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        );
+      };
+
+      // ==================== RENDER SALES TAB ====================
+      const renderSalesTab = () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold text-slate-800">Sales Entry</h1>
+            <button
+              onClick={exportData}
+              className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              title="Export all data"
+            >
+              <Icons.Download />
+            </button>
+          </div>
+
+          {/* Debt category hint */}
+          {debts.length > 0 && (
+            <div className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2 flex items-center gap-2">
+              <Icons.Zap />
+              <span>Tip: Negative "debt" values auto-apply to your tracked debts!</span>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {categories.map((field, index) => (
+              <div 
+                key={field} 
+                className="category-pill flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl border border-slate-200 slide-in"
+                style={{ animationDelay: `${index * 40}ms` }}
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => removeCategory(field)}
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                  >
+                    <Icons.X />
+                  </button>
+                  <span className="font-semibold text-slate-700 capitalize">{field}:</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  {editingField === field ? (
+                    <input
+                      ref={inputRef}
+                      type="number"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      onBlur={() => { setDirectValue(field, editValue); setEditingField(null); }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') { setDirectValue(field, editValue); setEditingField(null); }
+                        if (e.key === 'Escape') setEditingField(null);
+                      }}
+                      className="w-28 text-right p-2 border-2 border-indigo-500 rounded-lg font-bold money-font focus:outline-none"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => { setEditingField(field); setEditValue(entries[field].toString()); }}
+                      className={`text-xl font-bold money-font cursor-pointer hover:opacity-70 min-w-24 text-right ${entries[field] < 0 ? 'text-red-600' : entries[field] > 0 ? 'text-emerald-600' : 'text-slate-600'}`}
+                    >
+                      {formatCurrency(entries[field])}
+                    </span>
+                  )}
+                  
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => updateValue(field, field === 'debt' ? -10 : 10)}
+                      className="p-2 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all active:scale-95 shadow-md"
+                    >
+                      <Icons.Plus />
+                    </button>
+                    <button
+                      onClick={() => updateValue(field, field === 'debt' ? 10 : -10)}
+                      className="p-2 bg-gradient-to-br from-red-500 to-rose-600 text-white rounded-lg hover:from-red-600 hover:to-rose-700 transition-all active:scale-95 shadow-md"
+                    >
+                      <Icons.Minus />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {showAddCategory ? (
+              <div className="flex items-center gap-2 p-4 bg-indigo-50 rounded-xl border-2 border-indigo-300 fade-in">
+                <input
+                  type="text"
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addCategory();
+                    if (e.key === 'Escape') { setShowAddCategory(false); setNewCategory(''); }
+                  }}
+                  placeholder="Category name..."
+                  className="flex-1 p-2 border-2 border-indigo-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                  autoFocus
+                />
+                <button onClick={addCategory} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                  Add
+                </button>
+                <button onClick={() => { setShowAddCategory(false); setNewCategory(''); }} className="p-2 text-slate-500 hover:text-slate-700">
+                  <Icons.X />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowAddCategory(true)}
+                className="w-full p-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2"
+              >
+                <Icons.Plus /> Add Category
+              </button>
+            )}
+          </div>
+
+          <div className="mt-6 pt-6 border-t-2 border-slate-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xl font-bold text-slate-800">Session Total:</span>
+              <span className={`text-3xl font-bold money-font ${calculateTotal() < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                {formatCurrency(calculateTotal())}
+              </span>
+            </div>
+            <button
+              onClick={saveToTimeline}
+              className="w-full py-4 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-indigo-700 transition-all font-semibold text-lg flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg hover:shadow-xl"
+            >
+              <Icons.Save /> Save to Timeline
+            </button>
+          </div>
+
+          {timeline.length > 0 && (
+            <div className="mt-4 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Icons.TrendingUp />
+                  <span className="font-semibold text-slate-700">{timeline.length} entries total</span>
+                </div>
+                <span className={`text-xl font-bold money-font ${calculateTimelineTotal() < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {formatCurrency(calculateTimelineTotal())}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+
+      // ==================== RENDER DEBT TAB ====================
+      const [newDebtName, setNewDebtName] = useState('');
+      const [newDebtAmount, setNewDebtAmount] = useState('');
+      const [selectedDebt, setSelectedDebt] = useState(null);
+      const [selectedDebtType, setSelectedDebtType] = useState(null); // 'regular' or 'pallet'
+      const [paymentAmount, setPaymentAmount] = useState('');
+      const [paymentNote, setPaymentNote] = useState('');
+      const [newPalletDebtName, setNewPalletDebtName] = useState('');
+      const [newPalletDebtAmount, setNewPalletDebtAmount] = useState('');
+
+      const renderDebtTab = () => {
+        // Detail view for a selected debt
+        if (selectedDebt && selectedDebtType) {
+          const isPallet = selectedDebtType === 'pallet';
+          const debt = isPallet 
+            ? palletDebts.find(d => d.id === selectedDebt)
+            : debts.find(d => d.id === selectedDebt);
+          
+          if (!debt) { setSelectedDebt(null); setSelectedDebtType(null); return null; }
+          
+          const payments = isPallet
+            ? palletDebtPayments.filter(p => p.debtId === selectedDebt).sort((a, b) => new Date(b.date) - new Date(a.date))
+            : debtPayments.filter(p => p.debtId === selectedDebt).sort((a, b) => new Date(b.date) - new Date(a.date));
+          
+          const remaining = isPallet ? getPalletDebtRemaining(selectedDebt) : getDebtRemaining(selectedDebt);
+          const paid = debt.originalAmount - remaining;
+          const progress = (paid / debt.originalAmount) * 100;
+
+          return (
+            <div className="space-y-4 slide-up">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => { setSelectedDebt(null); setSelectedDebtType(null); }}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium"
+                >
+                  <Icons.ChevronLeft /> Back
+                </button>
+                <button
+                  onClick={() => { 
+                    isPallet ? deletePalletDebt(selectedDebt) : deleteDebt(selectedDebt); 
+                    setSelectedDebt(null); 
+                    setSelectedDebtType(null); 
+                  }}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Icons.Trash />
+                </button>
+              </div>
+
+              <div className="text-center mb-6">
+                <div className="flex items-center justify-center gap-2">
+                  {isPallet && <span className="text-orange-500">📦</span>}
+                  <h2 className="text-2xl font-bold text-slate-800 capitalize">{debt.name}</h2>
+                </div>
+                <p className="text-sm text-slate-500">
+                  {isPallet ? 'Pallet Debt • ' : ''}Added {new Date(debt.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+
+              <div className={`rounded-2xl p-6 text-white shadow-xl ${isPallet ? 'bg-gradient-to-br from-orange-600 to-amber-700' : 'bg-gradient-to-br from-slate-800 to-slate-900'}`}>
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <p className={`text-sm ${isPallet ? 'text-orange-200' : 'text-slate-400'}`}>Original Amount</p>
+                    <p className="text-2xl font-bold money-font">{formatCurrency(debt.originalAmount)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm ${isPallet ? 'text-orange-200' : 'text-slate-400'}`}>Remaining</p>
+                    <p className={`text-2xl font-bold money-font ${remaining === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {formatCurrency(remaining)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-2">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className={isPallet ? 'text-orange-200' : 'text-slate-400'}>Progress</span>
+                    <span className="text-emerald-400 font-medium">{progress.toFixed(1)}% paid</span>
+                  </div>
+                  <div className={`h-3 rounded-full overflow-hidden ${isPallet ? 'bg-orange-400/30' : 'bg-slate-700'}`}>
+                    <div className="debt-progress h-full rounded-full" style={{ width: `${progress}%` }} />
+                  </div>
+                </div>
+
+                <div className={`text-center mt-4 pt-4 border-t ${isPallet ? 'border-orange-500' : 'border-slate-700'}`}>
+                  <p className={`text-sm ${isPallet ? 'text-orange-200' : 'text-slate-400'}`}>Total Paid</p>
+                  <p className="text-xl font-bold money-font text-emerald-400">{formatCurrency(paid)}</p>
+                </div>
+              </div>
+
+              {remaining > 0 && (
+                <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                  <h3 className="font-semibold text-slate-700 mb-3">Make a Payment</h3>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <input
+                        type="number"
+                        value={paymentAmount}
+                        onChange={(e) => setPaymentAmount(e.target.value)}
+                        placeholder="Amount"
+                        className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 money-font"
+                      />
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (isPallet) {
+                          addPalletPayment(selectedDebt, parseFloat(paymentAmount) || 0, paymentNote);
+                        } else {
+                          addPayment(selectedDebt, parseFloat(paymentAmount) || 0, paymentNote);
+                        }
+                        setPaymentAmount('');
+                        setPaymentNote('');
+                      }}
+                      className={`px-6 py-3 text-white rounded-lg transition-colors font-medium ${isPallet ? 'bg-orange-600 hover:bg-orange-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
+                    >
+                      Pay
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={paymentNote}
+                    onChange={(e) => setPaymentNote(e.target.value)}
+                    placeholder="Note (optional)"
+                    className="w-full mt-2 p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 text-sm"
+                  />
+                </div>
+              )}
+
+              <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+                <h3 className="font-semibold text-slate-700 mb-3">Payment History</h3>
+                {payments.length === 0 ? (
+                  <p className="text-slate-500 text-center py-4">No payments yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {payments.map((p, i) => {
+                      const paymentsUpToThis = payments.slice(i);
+                      const paidUpToThis = paymentsUpToThis.reduce((sum, pay) => sum + pay.amount, 0);
+                      const remainingAfter = debt.originalAmount - paidUpToThis;
+                      return (
+                        <div key={p.id} className={`p-3 rounded-lg ${p.fromSales ? (isPallet ? 'bg-orange-50 border border-orange-200' : 'bg-indigo-50 border border-indigo-200') : 'bg-slate-50'}`}>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="text-sm text-slate-500">
+                                {new Date(p.date).toLocaleDateString()}
+                                {p.fromSales && <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${isPallet ? 'bg-orange-200 text-orange-700' : 'bg-indigo-200 text-indigo-700'}`}>From Sales</span>}
+                              </p>
+                              {p.note && <p className="text-sm text-slate-600 mt-1">{p.note}</p>}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-emerald-600 money-font">-{formatCurrency(p.amount)}</p>
+                              <p className="text-xs text-slate-400">Balance: {formatCurrency(remainingAfter)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {payments.length > 0 && (
+                <div className={`rounded-xl p-4 border ${isPallet ? 'bg-orange-50 border-orange-200' : 'bg-indigo-50 border-indigo-200'}`}>
+                  <h3 className={`font-semibold mb-3 ${isPallet ? 'text-orange-800' : 'text-indigo-800'}`}>Payment Breakdown</h3>
+                  <div className="font-mono text-sm space-y-1 text-slate-700">
+                    <div className="flex justify-between">
+                      <span>Original debt:</span>
+                      <span>{formatCurrency(debt.originalAmount)}</span>
+                    </div>
+                    {payments.slice().reverse().map((p, i) => (
+                      <div key={p.id} className="flex justify-between text-emerald-700">
+                        <span>− Payment {i + 1}{p.fromSales ? ' (sales)' : ''}:</span>
+                        <span>{formatCurrency(p.amount)}</span>
+                      </div>
+                    ))}
+                    <div className={`flex justify-between pt-2 border-t font-bold ${isPallet ? 'border-orange-300' : 'border-indigo-300'}`}>
+                      <span>Remaining:</span>
+                      <span className={remaining === 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                        {formatCurrency(remaining)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Main debt list view
+        return (
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-slate-800 mb-4">Debt Tracker</h1>
+
+            {/* Combined Summary Card */}
+            <div className="bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl p-6 text-white shadow-xl">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <p className="text-rose-200 text-xs uppercase tracking-wide">Total Debt</p>
+                  <p className="text-xl font-bold money-font mt-1">{formatCurrency(totalDebt + totalPalletDebt)}</p>
+                </div>
+                <div>
+                  <p className="text-rose-200 text-xs uppercase tracking-wide">Paid</p>
+                  <p className="text-xl font-bold money-font mt-1 text-emerald-300">{formatCurrency(totalPaid + totalPalletPaid)}</p>
+                </div>
+                <div>
+                  <p className="text-rose-200 text-xs uppercase tracking-wide">Remaining</p>
+                  <p className="text-xl font-bold money-font mt-1">{formatCurrency(remainingDebt + remainingPalletDebt)}</p>
+                </div>
+              </div>
+              {(totalDebt + totalPalletDebt) > 0 && (
+                <div className="mt-4">
+                  <div className="h-2 bg-rose-400/30 rounded-full overflow-hidden">
+                    <div className="debt-progress h-full" style={{ width: `${((totalPaid + totalPalletPaid) / (totalDebt + totalPalletDebt)) * 100}%` }} />
+                  </div>
+                  <p className="text-center text-rose-200 text-sm mt-2">
+                    {(((totalPaid + totalPalletPaid) / (totalDebt + totalPalletDebt)) * 100).toFixed(1)}% paid off
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Regular Debts Section */}
+            <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+              <h3 className="font-semibold text-slate-700 mb-3">Add Regular Debt</h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newDebtName}
+                  onChange={(e) => setNewDebtName(e.target.value)}
+                  placeholder="Name (e.g., Credit Card)"
+                  className="flex-1 p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
+                />
+                <input
+                  type="number"
+                  value={newDebtAmount}
+                  onChange={(e) => setNewDebtAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="w-28 p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 money-font"
+                />
+                <button
+                  onClick={() => {
+                    addDebt(newDebtName, parseFloat(newDebtAmount) || 0);
+                    setNewDebtName('');
+                    setNewDebtAmount('');
+                  }}
+                  className="px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  <Icons.Plus />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-slate-700">Regular Debts</h3>
+              {debts.length === 0 ? (
+                <div className="text-center py-6 text-slate-500 bg-slate-50 rounded-xl">
+                  <Icons.CreditCard />
+                  <p className="mt-2 text-sm">No regular debts tracked</p>
+                </div>
+              ) : (
+                debts.map((debt, i) => {
+                  const remaining = getDebtRemaining(debt.id);
+                  const progress = ((debt.originalAmount - remaining) / debt.originalAmount) * 100;
+                  return (
+                    <div
+                      key={debt.id}
+                      onClick={() => { setSelectedDebt(debt.id); setSelectedDebtType('regular'); }}
+                      className="p-4 bg-white rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-md cursor-pointer transition-all slide-in"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-slate-800 capitalize">{debt.name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold money-font ${remaining === 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {formatCurrency(remaining)}
+                          </span>
+                          <Icons.ChevronRight />
+                        </div>
+                      </div>
+                      <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                        <div className="debt-progress h-full" style={{ width: `${progress}%` }} />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {formatCurrency(debt.originalAmount - remaining)} of {formatCurrency(debt.originalAmount)} paid
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Pallet Debts Section */}
+            <div className="bg-orange-50 rounded-xl p-4 border border-orange-200 shadow-sm">
+              <h3 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
+                📦 Add Pallet Debt
+              </h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newPalletDebtName}
+                  onChange={(e) => setNewPalletDebtName(e.target.value)}
+                  placeholder="Name (e.g., Supplier A)"
+                  className="flex-1 p-3 border border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 bg-white"
+                />
+                <input
+                  type="number"
+                  value={newPalletDebtAmount}
+                  onChange={(e) => setNewPalletDebtAmount(e.target.value)}
+                  placeholder="Amount"
+                  className="w-28 p-3 border border-orange-300 rounded-lg focus:outline-none focus:border-orange-500 money-font bg-white"
+                />
+                <button
+                  onClick={() => {
+                    addPalletDebt(newPalletDebtName, parseFloat(newPalletDebtAmount) || 0);
+                    setNewPalletDebtName('');
+                    setNewPalletDebtAmount('');
+                  }}
+                  className="px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                >
+                  <Icons.Plus />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-orange-700 flex items-center gap-2">📦 Pallet Debts</h3>
+              {palletDebts.length === 0 ? (
+                <div className="text-center py-6 text-orange-500 bg-orange-50 rounded-xl border border-orange-200">
+                  <span className="text-2xl">📦</span>
+                  <p className="mt-2 text-sm">No pallet debts tracked</p>
+                </div>
+              ) : (
+                palletDebts.map((debt, i) => {
+                  const remaining = getPalletDebtRemaining(debt.id);
+                  const progress = ((debt.originalAmount - remaining) / debt.originalAmount) * 100;
+                  return (
+                    <div
+                      key={debt.id}
+                      onClick={() => { setSelectedDebt(debt.id); setSelectedDebtType('pallet'); }}
+                      className="p-4 bg-orange-50 rounded-xl border border-orange-200 hover:border-orange-400 hover:shadow-md cursor-pointer transition-all slide-in"
+                      style={{ animationDelay: `${i * 50}ms` }}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold text-slate-800 capitalize flex items-center gap-2">
+                          📦 {debt.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold money-font ${remaining === 0 ? 'text-emerald-600' : 'text-orange-600'}`}>
+                            {formatCurrency(remaining)}
+                          </span>
+                          <Icons.ChevronRight />
+                        </div>
+                      </div>
+                      <div className="h-2 bg-orange-200 rounded-full overflow-hidden">
+                        <div className="debt-progress h-full" style={{ width: `${progress}%` }} />
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">
+                        {formatCurrency(debt.originalAmount - remaining)} of {formatCurrency(debt.originalAmount)} paid
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      // ==================== RENDER MILEAGE TAB ====================
+      const [tripDate, setTripDate] = useState(new Date().toISOString().split('T')[0]);
+      const [tripStart, setTripStart] = useState('');
+      const [tripEnd, setTripEnd] = useState('');
+      const [tripPurpose, setTripPurpose] = useState('');
+
+      const renderMileageTab = () => (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-slate-800">Mileage</h1>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-500">Rate:</span>
+              <input
+                type="number"
+                step="0.01"
+                value={mileageRate}
+                onChange={(e) => setMileageRate(parseFloat(e.target.value) || 0)}
+                className="w-16 p-1 border border-slate-300 rounded text-center money-font focus:outline-none focus:border-indigo-500"
+              />
+              <span className="text-slate-500">/mi</span>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 text-white shadow-xl">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div>
+                <p className="text-blue-200 text-xs uppercase tracking-wide">Total Miles</p>
+                <p className="text-3xl font-bold money-font mt-1">{totalMileage.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-blue-200 text-xs uppercase tracking-wide">Reimbursement</p>
+                <p className="text-3xl font-bold money-font mt-1 text-emerald-300">{formatCurrency(totalReimbursement)}</p>
+              </div>
+            </div>
+            <p className="text-center text-blue-200 text-sm mt-4">
+              {mileageTrips.length} trip{mileageTrips.length !== 1 ? 's' : ''} logged
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+            <h3 className="font-semibold text-slate-700 mb-3">Log a Trip</h3>
+            <div className="space-y-3">
+              <input
+                type="date"
+                value={tripDate}
+                onChange={(e) => setTripDate(e.target.value)}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Start Odometer</label>
+                  <input
+                    type="number"
+                    value={tripStart}
+                    onChange={(e) => setTripStart(e.target.value)}
+                    placeholder="e.g., 45230"
+                    className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 money-font"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">End Odometer</label>
+                  <input
+                    type="number"
+                    value={tripEnd}
+                    onChange={(e) => setTripEnd(e.target.value)}
+                    placeholder="e.g., 45280"
+                    className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 money-font"
+                  />
+                </div>
+              </div>
+              <input
+                type="text"
+                value={tripPurpose}
+                onChange={(e) => setTripPurpose(e.target.value)}
+                placeholder="Purpose (e.g., Client meeting)"
+                className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500"
+              />
+              {tripStart && tripEnd && parseFloat(tripEnd) > parseFloat(tripStart) && (
+                <div className="p-3 bg-emerald-50 rounded-lg text-center">
+                  <span className="text-emerald-700 font-medium">
+                    {parseFloat(tripEnd) - parseFloat(tripStart)} miles = {formatCurrency((parseFloat(tripEnd) - parseFloat(tripStart)) * mileageRate)}
+                  </span>
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  addMileageTrip({
+                    date: tripDate,
+                    startOdometer: parseFloat(tripStart) || 0,
+                    endOdometer: parseFloat(tripEnd) || 0,
+                    purpose: tripPurpose
+                  });
+                  setTripStart('');
+                  setTripEnd('');
+                  setTripPurpose('');
+                }}
+                className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                <Icons.Plus /> Log Trip
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-slate-700">Trip History</h3>
+            {mileageTrips.length === 0 ? (
+              <div className="text-center py-8 text-slate-500">
+                <Icons.Car />
+                <p className="mt-2">No trips logged yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {[...mileageTrips].reverse().map((trip, i) => {
+                  const miles = trip.endOdometer - trip.startOdometer;
+                  return (
+                    <div key={trip.id} className="p-4 bg-white rounded-xl border border-slate-200 slide-in" style={{ animationDelay: `${i * 30}ms` }}>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm text-slate-500">{new Date(trip.date).toLocaleDateString()}</p>
+                          <p className="font-medium text-slate-700">{trip.purpose || 'No purpose noted'}</p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {trip.startOdometer.toLocaleString()} → {trip.endOdometer.toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-indigo-600 money-font">{miles} mi</p>
+                          <p className="text-sm text-emerald-600 money-font">{formatCurrency(miles * mileageRate)}</p>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteMileageTrip(trip.id); }}
+                            className="text-red-400 hover:text-red-600 mt-1"
+                          >
+                            <Icons.Trash />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+      // ==================== RENDER TIMELINE TAB ====================
+      const renderTimelineTab = () => {
+        if (selectedEntry) {
+          return (
+            <div className="space-y-4 slide-up">
+              <div className="flex items-center justify-between mb-4">
+                <button
+                  onClick={() => setSelectedEntry(null)}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium"
+                >
+                  <Icons.ChevronLeft /> Back
+                </button>
+                <button
+                  onClick={() => deleteTimelineEntry(selectedEntry.id)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Icons.Trash />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-500">
+                {new Date(selectedEntry.date).toLocaleDateString('en-US', { 
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                })}
+              </p>
+
+              <div className="space-y-2">
+                {Object.entries(selectedEntry.entries).map(([field, value]) => (
+                  value !== 0 && (
+                    <div key={field} className="flex justify-between p-3 bg-slate-50 rounded-lg">
+                      <span className="capitalize font-medium text-slate-700">{field}:</span>
+                      <span className={`font-bold money-font ${value < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {formatCurrency(value)}
+                      </span>
+                    </div>
+                  )
+                ))}
+                <div className="flex justify-between p-4 bg-indigo-50 rounded-lg border-2 border-indigo-200">
+                  <span className="font-bold text-slate-800">Total:</span>
+                  <span className={`text-xl font-bold money-font ${selectedEntry.total < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    {formatCurrency(selectedEntry.total)}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Notes:</label>
+                <textarea
+                  value={selectedEntry.description || ''}
+                  onChange={(e) => updateTimelineEntry(selectedEntry.id, { description: e.target.value })}
+                  className="w-full p-3 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500 resize-none"
+                  rows="3"
+                  placeholder="Add notes..."
+                />
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-slate-800">Timeline</h1>
+              {timeline.length > 0 && (
+                <button onClick={exportData} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                  <Icons.Download />
+                </button>
+              )}
+            </div>
+
+            {timeline.length === 0 ? (
+              <div className="text-center py-12 text-slate-500">
+                <Icons.Clock />
+                <p className="mt-2">No entries yet</p>
+                <p className="text-sm">Save your first entry from the Sales tab</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {timeline.map((entry, i) => (
+                  <div
+                    key={entry.id}
+                    onClick={() => setSelectedEntry(entry)}
+                    className="p-4 bg-white rounded-xl border-l-4 border-indigo-500 hover:shadow-md cursor-pointer transition-all slide-in"
+                    style={{ animationDelay: `${i * 40}ms` }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <p className="text-sm text-slate-500">
+                          {new Date(entry.date).toLocaleDateString('en-US', { 
+                            weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                        <p className="text-slate-700 truncate max-w-48">
+                          {entry.description || 'Click to add notes...'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xl font-bold money-font ${entry.total < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                          {formatCurrency(entry.total)}
+                        </span>
+                        <Icons.ChevronRight />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // ==================== RENDER CALENDAR TAB ====================
+      const renderCalendarTab = () => {
+        const { daysInMonth, startingDayOfWeek, year, month } = getDaysInMonth(currentMonth);
+        const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        if (selectedCalendarDate) {
+          const entriesForDate = getEntriesForDate(selectedCalendarDate);
+          return (
+            <div className="space-y-4 slide-up">
+              <button
+                onClick={() => setSelectedCalendarDate(null)}
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium"
+              >
+                <Icons.ChevronLeft /> Back to Calendar
+              </button>
+
+              <h3 className="text-xl font-bold text-slate-800">
+                {selectedCalendarDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </h3>
+
+              {entriesForDate.length === 0 ? (
+                <p className="text-slate-500 text-center py-8">No entries for this date</p>
+              ) : (
+                <div className="space-y-3">
+                  {entriesForDate.map(entry => (
+                    <div
+                      key={entry.id}
+                      onClick={() => { setSelectedEntry(entry); setSelectedCalendarDate(null); setActiveTab('timeline'); }}
+                      className="p-4 bg-white rounded-xl border-l-4 border-indigo-500 hover:shadow-md cursor-pointer transition-all"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-slate-500">
+                            {new Date(entry.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          <p className="text-slate-700">{entry.description || 'Click to view...'}</p>
+                        </div>
+                        <span className={`text-xl font-bold money-font ${entry.total < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                          {formatCurrency(entry.total)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="p-4 bg-indigo-50 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-slate-700">Day Total:</span>
+                      <span className={`text-xl font-bold money-font ${entriesForDate.reduce((s, e) => s + e.total, 0) < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {formatCurrency(entriesForDate.reduce((s, e) => s + e.total, 0))}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setCurrentMonth(new Date(year, month - 1, 1))}
+                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <Icons.ChevronLeft />
+              </button>
+              <h2 className="text-xl font-bold text-slate-800">{monthName}</h2>
+              <button
+                onClick={() => setCurrentMonth(new Date(year, month + 1, 1))}
+                className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+              >
+                <Icons.ChevronRight />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <div key={i} className="text-center font-semibold text-slate-500 py-2 text-sm">{day}</div>
+              ))}
+              
+              {Array.from({ length: startingDayOfWeek }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square" />
+              ))}
+              
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const date = new Date(year, month, day);
+                const entriesForDay = getEntriesForDate(date);
+                const hasEntries = entriesForDay.length > 0;
+                const totalForDay = entriesForDay.reduce((sum, e) => sum + e.total, 0);
+                const isToday = date.toDateString() === new Date().toDateString();
+
+                return (
+                  <div
+                    key={day}
+                    onClick={() => hasEntries && setSelectedCalendarDate(date)}
+                    className={`aspect-square p-1 border rounded-lg flex flex-col items-center justify-center text-sm transition-all ${
+                      hasEntries
+                        ? 'bg-indigo-100 border-indigo-300 cursor-pointer hover:bg-indigo-200 active:scale-95'
+                        : isToday
+                          ? 'bg-amber-100 border-amber-300'
+                          : 'bg-white border-slate-200'
+                    }`}
+                  >
+                    <span className={`font-semibold ${isToday ? 'text-amber-700' : 'text-slate-700'}`}>{day}</span>
+                    {hasEntries && (
+                      <span className={`text-xs font-bold money-font ${totalForDay < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {formatShortCurrency(totalForDay)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setCurrentMonth(new Date())}
+              className="w-full py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors font-medium"
+            >
+              Today
+            </button>
+
+            {timeline.length > 0 && (
+              <div className="p-4 bg-indigo-50 rounded-xl">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-slate-700">Month Total:</span>
+                  <span className={`text-xl font-bold money-font ${
+                    timeline.filter(e => {
+                      const d = new Date(e.date);
+                      return d.getMonth() === month && d.getFullYear() === year;
+                    }).reduce((sum, e) => sum + e.total, 0) < 0 ? 'text-red-600' : 'text-emerald-600'
+                  }`}>
+                    {formatCurrency(
+                      timeline.filter(e => {
+                        const d = new Date(e.date);
+                        return d.getMonth() === month && d.getFullYear() === year;
+                      }).reduce((sum, e) => sum + e.total, 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // ==================== MAIN RENDER ====================
+      const renderContent = () => {
+        switch (activeTab) {
+          case 'sales': return renderSalesTab();
+          case 'debt': return renderDebtTab();
+          case 'mileage': return renderMileageTab();
+          case 'timeline': return renderTimelineTab();
+          case 'calendar': return renderCalendarTab();
+          default: return renderSalesTab();
+        }
+      };
+
+      return (
+        <div className="min-h-screen p-4">
+          <Toast toast={toast} />
+          <DebtSelectorModal />
+          <div className="max-w-lg mx-auto fade-in">
+            <TopNav activeTab={activeTab} setActiveTab={setActiveTab} />
+            
+            {/* Always visible debt stats widget */}
+            <DebtStatsWidget 
+              remainingDebt={remainingDebt}
+              remainingPalletDebt={remainingPalletDebt}
+              monthlyPayments={monthlyPayments}
+              totalDebt={totalDebt}
+              totalPalletDebt={totalPalletDebt}
+            />
+            
+            <div className="glass-card rounded-2xl shadow-2xl p-5">
+              {renderContent()}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.render(<SalesTracker />, document.getElementById('root'));
+  </script>
+</body>
+</html>
